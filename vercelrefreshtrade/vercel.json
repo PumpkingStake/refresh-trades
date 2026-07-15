@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/((?!api/).*)",
+      "destination": "https://whalecoin.fun/$1",
+      "permanent": false
+    }
+  ]
+}
