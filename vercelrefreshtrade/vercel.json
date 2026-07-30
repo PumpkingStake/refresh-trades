@@ -1,0 +1,15 @@
+{
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "whalecoin.vercel.app"
+        }
+      ],
+      "destination": "https://whalecoin.fun/$1",
+      "permanent": true
+    }
+  ]
+}
