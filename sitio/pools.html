@@ -1,0 +1,428 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🐋 WHALECOIN · Liquidity Pools</title>
+<link rel="icon" href="whale.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --ocean-deep: #0a1a2e;
+    --ocean-mid: #123b5e;
+    --ocean-light: #1f6b8a;
+    --ocean-surface: #48b5c2;
+    --coral: #ff6b6b;
+    --seafoam: #7fdbca;
+    --gold: #ffd93d;
+    --white: #ffffff;
+    --text-soft: #c8dbe8;
+    --text-dim: #7a9bb5;
+    --line: rgba(127,219,202,0.14);
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 10px;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-display: 'Orbitron', 'Inter', sans-serif;
+  }
+  html, body { height: 100%; }
+  body {
+    background: var(--ocean-deep);
+    color: var(--white);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* ambient bubbles, consistent with the rest of the site */
+  .bubbles { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+  .bubble {
+    position: absolute; bottom: -40px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(127,219,202,0.28), rgba(127,219,202,0.04) 70%);
+    animation: bubbleRise linear infinite;
+  }
+  @keyframes bubbleRise {
+    0% { transform: translateY(0) translateX(0); opacity: 0; }
+    10% { opacity: .5; }
+    90% { opacity: .2; }
+    100% { transform: translateY(-110vh) translateX(var(--drift, 20px)); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { .bubble { animation: none; display: none; } }
+
+  .wrap {
+    position: relative; z-index: 1;
+    max-width: 1200px; margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 14px;
+    padding-bottom: 20px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--white); }
+  .brand img { height: 30px; width: 30px; border-radius: 50%; box-shadow: 0 0 0 2px rgba(72,181,194,0.35); }
+  .brand-name { font-family: var(--font-display); font-weight: 800; font-size: 17px; letter-spacing: 0.02em; }
+  .brand-name span { color: var(--gold); }
+  .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pill-link {
+    font-size: 12.5px; font-weight: 700; color: var(--ocean-deep);
+    text-decoration: none;
+    background: linear-gradient(105deg, var(--gold), var(--seafoam));
+    padding: 8px 16px; border-radius: 999px;
+    box-shadow: 0 4px 16px rgba(255, 217, 61, 0.25);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .pill-link:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(255, 217, 61, 0.35); }
+
+  h1 {
+    font-family: var(--font-display); font-weight: 800;
+    font-size: clamp(24px, 3.4vw, 34px);
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+  }
+  .subtitle { color: var(--text-dim); font-size: 14px; max-width: 620px; }
+
+  /* ===== Summary stats row ===== */
+  .summary-row {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 14px; margin: 28px 0 32px;
+  }
+  .summary-card {
+    background: rgba(18,59,94,0.28);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+  }
+  .summary-card .label {
+    font-size: 11px; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .summary-card .value {
+    font-family: var(--font-display); font-weight: 800; font-size: 24px;
+  }
+  .summary-card .value.gold { color: var(--gold); }
+  .summary-card .value.seafoam { color: var(--seafoam); }
+  .summary-card .delta {
+    font-size: 12px; font-weight: 700; margin-top: 4px;
+  }
+  .delta.up { color: #4ade80; }
+  .delta.down { color: var(--coral); }
+
+  /* ===== Pool grid ===== */
+  .section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-dim); margin-bottom: 14px;
+  }
+  .pool-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 16px;
+  }
+  .pool-card {
+    background: rgba(18,59,94,0.28);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    display: flex; flex-direction: column; gap: 16px;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+  .pool-card:hover { border-color: rgba(127,219,202,0.35); transform: translateY(-2px); }
+
+  .pool-head { display: flex; align-items: center; gap: 12px; }
+  .pool-icon {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 15px; color: var(--ocean-deep);
+    flex-shrink: 0;
+  }
+  .pool-name { font-weight: 700; font-size: 15.5px; }
+  .pool-pair { font-size: 11.5px; color: var(--text-dim); }
+  .pool-protocol {
+    margin-left: auto;
+    font-size: 10.5px; font-weight: 700; color: var(--seafoam);
+    background: rgba(127,219,202,0.1); border: 1px solid rgba(127,219,202,0.2);
+    padding: 4px 10px; border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .pool-metrics {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .metric {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+  }
+  .metric .m-label {
+    font-size: 10px; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .metric .m-value { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+  .metric .m-value.gold { color: var(--gold); }
+  .metric .m-value.seafoam { color: var(--seafoam); }
+
+  .pool-composition { }
+  .comp-label {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--text-dim); margin-bottom: 6px;
+  }
+  .comp-bar {
+    display: flex; height: 8px; border-radius: 4px; overflow: hidden;
+    background: rgba(255,255,255,0.05);
+  }
+  .comp-seg { height: 100%; }
+  .comp-legend {
+    display: flex; gap: 14px; margin-top: 8px; flex-wrap: wrap;
+  }
+  .comp-legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--text-soft);
+  }
+  .comp-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  .pool-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-top: 4px;
+  }
+  .pool-footer .updated { font-size: 10.5px; color: var(--text-dim); }
+  .pool-cta {
+    font-size: 12px; font-weight: 700; color: var(--seafoam);
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .pool-cta:hover { color: var(--gold); }
+
+  .mock-banner {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,217,61,0.08); border: 1px solid rgba(255,217,61,0.2);
+    color: var(--gold); font-size: 12.5px; font-weight: 600;
+    padding: 10px 16px; border-radius: var(--radius-sm);
+    margin-bottom: 24px;
+  }
+
+  footer.page-footer {
+    text-align: center; color: var(--text-dim); font-size: 11.5px;
+    margin-top: 48px;
+  }
+
+  @media (max-width: 760px) {
+    .summary-row { grid-template-columns: repeat(2, 1fr); }
+    .pool-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bubbles" id="bubbles"></div>
+
+<div class="wrap">
+  <header>
+    <a href="index.html" class="brand">
+      <img src="whale.png" alt="WHALECOIN" onerror="this.style.display='none'" />
+      <span class="brand-name">WHALE<span>COIN</span></span>
+    </a>
+    <div class="header-actions">
+      <a href="app.html#swap" class="pill-link">🐋 Swap</a>
+    </div>
+  </header>
+
+  <h1>Liquidity Pools</h1>
+  <p class="subtitle">TVL, APY, and pool composition across the reef protocols the vault farms — Strike, Ascend, Surf, Pulse, and Atlas.</p>
+
+  <div class="mock-banner">
+    <span>⚠️</span>
+    <span>Showing sample data — live pool metrics are not wired up yet.</span>
+  </div>
+
+  <div class="summary-row" id="summaryRow">
+    <div class="summary-card">
+      <div class="label">Total TVL</div>
+      <div class="value gold" id="sumTvl">$0</div>
+      <div class="delta up" id="sumTvlDelta">+0.0% (24h)</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Avg. APY</div>
+      <div class="value seafoam" id="sumApy">0%</div>
+      <div class="delta up">Across 6 pools</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Active Pools</div>
+      <div class="value" id="sumPools">0</div>
+      <div class="delta up">Live on Cardano</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Vault Share</div>
+      <div class="value gold" id="sumShare">0%</div>
+      <div class="delta up">Of total pool TVL</div>
+    </div>
+  </div>
+
+  <div class="section-label">Reef pools</div>
+  <div class="pool-grid" id="poolGrid"></div>
+
+  <footer class="page-footer">Sample data for layout purposes. Connect a live data source to populate TVL, APY, and composition.</footer>
+</div>
+
+<script>
+  const POOLS = [
+    {
+      name: 'Strike', pair: 'STRIKE / ADA', protocol: 'Strike Finance',
+      icon: '⚡', iconBg: 'linear-gradient(135deg, #4ade80, #22c55e)',
+      tvl: 2_480_000, apy: 18.4, vaultShare: 6.2,
+      composition: [
+        { label: 'STRIKE', pct: 54, color: 'var(--seafoam)' },
+        { label: 'ADA', pct: 46, color: 'var(--gold)' }
+      ]
+    },
+    {
+      name: 'Ascend', pair: 'ASCEND / ADA', protocol: 'Ascend',
+      icon: 'A', iconBg: 'linear-gradient(135deg, #ff8a5c, #ff6b6b)',
+      tvl: 1_120_000, apy: 24.1, vaultShare: 9.8,
+      composition: [
+        { label: 'ASCEND', pct: 48, color: 'var(--coral)' },
+        { label: 'ADA', pct: 52, color: 'var(--gold)' }
+      ]
+    },
+    {
+      name: 'Surf', pair: 'SURF / ADA', protocol: 'Surf Lending',
+      icon: '🏄', iconBg: 'linear-gradient(135deg, #48b5c2, #1f6b8a)',
+      tvl: 3_960_000, apy: 12.7, vaultShare: 4.1,
+      composition: [
+        { label: 'SURF', pct: 61, color: 'var(--ocean-surface)' },
+        { label: 'ADA', pct: 39, color: 'var(--gold)' }
+      ]
+    },
+    {
+      name: 'Pulse', pair: 'PULSE / ADA', protocol: 'Pulse Cardano',
+      icon: '💠', iconBg: 'linear-gradient(135deg, #a78bfa, #7c3aed)',
+      tvl: 860_000, apy: 31.6, vaultShare: 12.5,
+      composition: [
+        { label: 'PULSE', pct: 43, color: '#a78bfa' },
+        { label: 'ADA', pct: 57, color: 'var(--gold)' }
+      ]
+    },
+    {
+      name: 'Atlas', pair: 'ATLAS / ADA', protocol: 'Atlas DeFi',
+      icon: '🗺️', iconBg: 'linear-gradient(135deg, #ffd93d, #ff8a5c)',
+      tvl: 1_540_000, apy: 15.9, vaultShare: 7.3,
+      composition: [
+        { label: 'ATLAS', pct: 50, color: 'var(--gold)' },
+        { label: 'ADA', pct: 50, color: 'var(--seafoam)' }
+      ]
+    },
+    {
+      name: 'Whale', pair: 'WHALE / ADA', protocol: 'Minswap',
+      icon: '🐋', iconBg: 'linear-gradient(135deg, #7fdbca, #48b5c2)',
+      tvl: 640_000, apy: 9.3, vaultShare: 21.0,
+      composition: [
+        { label: 'WHALE', pct: 57, color: 'var(--seafoam)' },
+        { label: 'ADA', pct: 43, color: 'var(--gold)' }
+      ]
+    }
+  ];
+
+  function fmtUsd(n) {
+    if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(2) + 'M';
+    if (n >= 1_000) return '$' + (n / 1_000).toFixed(0) + 'K';
+    return '$' + n.toFixed(0);
+  }
+
+  function renderSummary() {
+    const totalTvl = POOLS.reduce((s, p) => s + p.tvl, 0);
+    const avgApy = POOLS.reduce((s, p) => s + p.apy, 0) / POOLS.length;
+    const avgShare = POOLS.reduce((s, p) => s + p.vaultShare, 0) / POOLS.length;
+    document.getElementById('sumTvl').textContent = fmtUsd(totalTvl);
+    document.getElementById('sumApy').textContent = avgApy.toFixed(1) + '%';
+    document.getElementById('sumPools').textContent = POOLS.length;
+    document.getElementById('sumShare').textContent = avgShare.toFixed(1) + '%';
+  }
+
+  function renderPools() {
+    const grid = document.getElementById('poolGrid');
+    grid.innerHTML = POOLS.map(p => `
+      <div class="pool-card">
+        <div class="pool-head">
+          <div class="pool-icon" style="background:${p.iconBg}">${p.icon}</div>
+          <div>
+            <div class="pool-name">${p.name}</div>
+            <div class="pool-pair">${p.pair}</div>
+          </div>
+          <div class="pool-protocol">${p.protocol}</div>
+        </div>
+
+        <div class="pool-metrics">
+          <div class="metric">
+            <div class="m-label">TVL</div>
+            <div class="m-value gold">${fmtUsd(p.tvl)}</div>
+          </div>
+          <div class="metric">
+            <div class="m-label">APY</div>
+            <div class="m-value seafoam">${p.apy.toFixed(1)}%</div>
+          </div>
+        </div>
+
+        <div class="pool-composition">
+          <div class="comp-label">
+            <span>Composition</span>
+            <span>Vault share: ${p.vaultShare.toFixed(1)}%</span>
+          </div>
+          <div class="comp-bar">
+            ${p.composition.map(c => `<div class="comp-seg" style="width:${c.pct}%; background:${c.color}"></div>`).join('')}
+          </div>
+          <div class="comp-legend">
+            ${p.composition.map(c => `
+              <div class="comp-legend-item">
+                <span class="comp-dot" style="background:${c.color}"></span>
+                ${c.label} ${c.pct}%
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="pool-footer">
+          <span class="updated">Sample data</span>
+          <a href="app.html#swap" class="pool-cta">Trade →</a>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  renderSummary();
+  renderPools();
+
+  // ambient bubbles
+  (function () {
+    const container = document.getElementById('bubbles');
+    if (!container) return;
+    const COUNT = 16;
+    for (let i = 0; i < COUNT; i++) {
+      const b = document.createElement('div');
+      b.className = 'bubble';
+      const size = 6 + Math.random() * 18;
+      const left = Math.random() * 100;
+      const duration = 14 + Math.random() * 16;
+      const delay = Math.random() * -30;
+      const drift = (Math.random() * 60 - 30) + 'px';
+      b.style.width = size + 'px';
+      b.style.height = size + 'px';
+      b.style.left = left + '%';
+      b.style.setProperty('--drift', drift);
+      b.style.animationDuration = duration + 's';
+      b.style.animationDelay = delay + 's';
+      container.appendChild(b);
+    }
+  })();
+</script>
+
+</body>
+</html>
